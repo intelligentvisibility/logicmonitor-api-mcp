@@ -26,6 +26,7 @@ import { UserHandler } from './resources/user/userHandler.js';
 import { DashboardHandler } from './resources/dashboard/dashboardHandler.js';
 import { CollectorGroupHandler } from './resources/collectorGroup/collectorGroupHandler.js';
 import { DeviceDataHandler } from './resources/deviceData/deviceDataHandler.js';
+import { DeviceInstanceHandler } from './resources/deviceInstance/deviceInstanceHandler.js';
 import { SessionHandler } from './resources/session/sessionHandler.js';
 import { SdtHandler } from './resources/sdt/sdtHandler.js';
 import { OpsnoteHandler } from './resources/opsnote/opsnoteHandler.js';
@@ -395,6 +396,7 @@ export async function createServer(config: ServerConfig = {}) {
     'lm_dashboard':       { resourceType: 'dashboard',      resourceTitle: 'LogicMonitor dashboard',       handler: DashboardHandler },
     'lm_collector_group': { resourceType: 'collectorGroup', resourceTitle: 'LogicMonitor collector group', handler: CollectorGroupHandler },
     'lm_device_data':     { resourceType: 'deviceData',     resourceTitle: 'LogicMonitor device data',     handler: DeviceDataHandler },
+    'lm_device_instance': { resourceType: 'deviceInstance', resourceTitle: 'LogicMonitor device instance', handler: DeviceInstanceHandler },
     'lm_sdt':             { resourceType: 'sdt',             resourceTitle: 'LogicMonitor SDT',             handler: SdtHandler },
     'lm_opsnote':         { resourceType: 'opsnote',         resourceTitle: 'LogicMonitor OpsNote',         handler: OpsnoteHandler },
     'lm_session':         { resourceType: 'session',        resourceTitle: 'LogicMonitor session',         handler: null },

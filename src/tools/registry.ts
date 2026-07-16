@@ -13,6 +13,7 @@ import { CollectorGroupOperationArgsSchema } from '../resources/collectorGroup/c
 import { UserOperationArgsSchema } from '../resources/user/userZodSchemas.js';
 import { DashboardOperationArgsSchema } from '../resources/dashboard/dashboardZodSchemas.js';
 import { DeviceDataOperationArgsSchema } from '../resources/deviceData/deviceDataZodSchemas.js';
+import { DeviceInstanceOperationArgsSchema } from '../resources/deviceInstance/deviceInstanceZodSchemas.js';
 import { SessionOperationArgsSchema } from '../resources/session/sessionZodSchemas.js';
 import { SdtOperationArgsSchema } from '../resources/sdt/sdtZodSchemas.js';
 import { OpsnoteOperationArgsSchema } from '../resources/opsnote/opsnoteZodSchemas.js';
@@ -238,6 +239,37 @@ Available fields:
 Note: This is a read-only tool for querying monitoring data.`,
     inputSchema: DeviceDataOperationArgsSchema,
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+  },
+  {
+    name: 'lm_device_instance',
+    title: 'LogicMonitor Device Instance Management',
+    description: `Manage monitored instances ("Add Monitored Instance") and instance groups under a device datasource. Write-side counterpart to lm_device_data (which reads instances). Supports:
+- create: Add one or more monitored instances (batch). A single add is an array of one; partial success reported per item.
+- update: Modify an instance (identified by instanceId or wildValue).
+- delete: Remove instance(s) (single via instanceId/wildValue, or batch via instanceIds/wildValues).
+- list_groups: List instance groups under the datasource.
+- create_group: Create an instance group.
+- update_group: Rename or re-describe an instance group.
+
+Applicability: This tool works only for MANUAL datasources — Active Discovery must be OFF (e.g. PingMulti-, HTTP_Page-). It refuses (create/update/delete) if the datasource has autoDiscovery:true, and warns if isMultiple:false. It does NOT modify device properties or AppliesTo — the caller must ensure the DataSource already applies to the device (via lm_device).
+
+Datasource targeting (every operation): pass EITHER
+- hdsId: the numeric device-datasource id (the "id" from lm_device_data list_datasources), OR
+- deviceId + dataSourceName: exact dataSourceName (e.g. "PingMulti-"), NOT the display name.
+deviceId is always required.
+
+Instance fields (create): required displayName + wildValue (for PingMulti- the wildValue is the ping target IP/DNS). Optional wildValue2, groupId, description, disableAlerting, stopMonitoring, and customProperties [{name,value}] (instance-level properties ride in the create call).
+
+Instance groups: group assignment is by numeric groupId only (omit → the @default group). There is NO group-name resolution and NO auto-create inside create. To place instances in a named group: call list_groups (to get ids), create_group if missing, then pass the numeric groupId. Known limitation: instance groups CANNOT be deleted via the API (no DELETE endpoint) — create them deliberately.
+
+Typical Ping (Multi) workflow:
+1. lm_device_data list_datasources deviceId=<id> → find "PingMulti-", note its "id" (the hdsId)
+2. lm_device_instance create deviceId=<id> hdsId=<hdsId> instances=[{displayName, wildValue}] (batch for many targets)
+3. lm_device_data list_instances to verify
+
+Batch: create and delete accept batchOptions { maxConcurrent, continueOnError }.`,
+    inputSchema: DeviceInstanceOperationArgsSchema,
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
   },
   {
     name: 'lm_session',

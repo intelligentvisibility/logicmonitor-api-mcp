@@ -406,6 +406,11 @@ export interface LMDeviceDatasource {
   dataSourceType: string;
   monitoringInstanceNumber: number;
   instanceNumber: number;
+  // Active Discovery flag: when true, instances are managed automatically and
+  // cannot be created/updated/deleted via API. lm_device_instance guards on this.
+  autoDiscovery?: boolean;
+  // Whether the DataSource supports multiple instances (e.g. PingMulti-).
+  isMultiple?: boolean;
   stopMonitoring: boolean;
   disableAlerting: boolean;
   assignedOn: number;
@@ -426,6 +431,7 @@ export interface LMDeviceDatasourceInstance {
   description: string;
   wildValue: string;
   wildValue2: string;
+  groupId?: number;
   groupName: string;
   stopMonitoring: boolean;
   disableAlerting: boolean;
@@ -436,6 +442,16 @@ export interface LMDeviceDatasourceInstance {
     name: string;
     value: string;
   }>;
+}
+
+export interface LMDeviceDatasourceInstanceGroup {
+  id: number;
+  name: string;
+  description?: string;
+  deviceId?: number;
+  deviceDataSourceId?: number;
+  deviceDisplayName?: string;
+  createOn?: number;
 }
 
 export interface LMSDT {

@@ -26,6 +26,7 @@ const LIST_SUMMARY_FIELDS: Record<string, string[]> = {
   user:            ['id', 'username', 'email', 'status'],
   dashboard:       ['id', 'name', 'groupId'],
   deviceData:      ['id', 'dataSourceName', 'monitoringInstanceNumber'],
+  deviceInstance:  ['id', 'name', 'description'],
   sdt:             ['id', 'type', 'sdtType', 'isEffective', 'comment'],
   opsnote:         ['id', 'note', 'createdBy', 'happenOnInSec'],
 };

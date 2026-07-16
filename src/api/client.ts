@@ -14,6 +14,7 @@ import {
   LMCollectorGroup,
   LMDeviceDatasource,
   LMDeviceDatasourceInstance,
+  LMDeviceDatasourceInstanceGroup,
   LMDeviceData,
   LMSDT,
   LMOpsNote,
@@ -1977,6 +1978,216 @@ export class LogicMonitorClient {
     return {
       data: response.data.data || response.data,
       raw: response.data,
+      meta: this.createResponseMeta(response, requestContext, duration)
+    };
+  }
+
+  // ── Device datasource instance & instance-group writes ─────────────────
+  // Manual (Active Discovery off) DataSources only — e.g. PingMulti-. Powers
+  // the lm_device_instance tool ("Add Monitored Instance").
+
+  /**
+   * Create a monitored instance under a device datasource (hdsId).
+   * Instance-level properties (customProperties) ride in this same POST body.
+   */
+  async createDeviceDatasourceInstance(
+    deviceId: number,
+    hdsId: number,
+    payload: {
+      displayName: string;
+      wildValue: string;
+      wildValue2?: string;
+      groupId?: number;
+      description?: string;
+      disableAlerting?: boolean;
+      stopMonitoring?: boolean;
+      customProperties?: Array<{ name: string; value: string }>;
+    }
+  ): Promise<ApiResult<LMDeviceDatasourceInstance>> {
+    const endpoint = `/device/devices/${deviceId}/devicedatasources/${hdsId}/instances`;
+    const requestContext: LogicMonitorRequestContext = {
+      endpoint,
+      method: 'post',
+      payload
+    };
+
+    const startedAt = performance.now();
+    const response = await this.axiosInstance.post(endpoint, payload);
+    const duration = performance.now() - startedAt;
+
+    const raw = response.data;
+    const created = raw?.data ?? raw;
+    if (!created || typeof created.id === 'undefined') {
+      throw new LogicMonitorApiError(
+        `Invalid instance response structure returned from create for device ${deviceId} datasource ${hdsId}`,
+        {
+          status: response.status,
+          requestId: this.extractRequestId(response.headers as AxiosHeaders),
+          requestUrl: endpoint
+        }
+      );
+    }
+
+    return {
+      data: created,
+      raw,
+      meta: this.createResponseMeta(response, requestContext, duration)
+    };
+  }
+
+  /**
+   * Update a monitored instance by numeric instance id.
+   * PATCH preserves fields not present in the payload.
+   */
+  async updateDeviceDatasourceInstance(
+    deviceId: number,
+    hdsId: number,
+    instanceId: number,
+    payload: Record<string, unknown>
+  ): Promise<ApiResult<LMDeviceDatasourceInstance>> {
+    const endpoint = `/device/devices/${deviceId}/devicedatasources/${hdsId}/instances/${instanceId}`;
+    // opType=replace mirrors updateDevice: preserve existing props when patching customProperties
+    const queryParams = payload.customProperties ? { opType: 'replace' } : {};
+    const requestContext: LogicMonitorRequestContext = {
+      endpoint,
+      method: 'patch',
+      payload,
+      params: queryParams
+    };
+
+    const startedAt = performance.now();
+    const response = await this.axiosInstance.patch(endpoint, payload, { params: queryParams });
+    const duration = performance.now() - startedAt;
+
+    const raw = response.data;
+    const updated = raw?.data ?? raw;
+
+    return {
+      data: updated,
+      raw,
+      meta: this.createResponseMeta(response, requestContext, duration)
+    };
+  }
+
+  /**
+   * Delete a monitored instance by numeric instance id.
+   */
+  async deleteDeviceDatasourceInstance(
+    deviceId: number,
+    hdsId: number,
+    instanceId: number
+  ): Promise<ApiResult<{ instanceId: number }>> {
+    const endpoint = `/device/devices/${deviceId}/devicedatasources/${hdsId}/instances/${instanceId}`;
+    const requestContext: LogicMonitorRequestContext = {
+      endpoint,
+      method: 'delete'
+    };
+
+    const startedAt = performance.now();
+    const response = await this.axiosInstance.delete(endpoint);
+    const duration = performance.now() - startedAt;
+
+    return {
+      data: { instanceId },
+      raw: response.data ?? null,
+      meta: this.createResponseMeta(response, requestContext, duration)
+    };
+  }
+
+  /**
+   * List instance groups under a device datasource (hdsId).
+   */
+  async listDeviceDatasourceInstanceGroups(
+    deviceId: number,
+    hdsId: number,
+    params?: {
+      filter?: string;
+      size?: number;
+      offset?: number;
+      fields?: string;
+      autoPaginate?: boolean;
+    }
+  ): Promise<ApiListResult<LMDeviceDatasourceInstanceGroup>> {
+    const { autoPaginate = true, ...restParams } = params || {};
+    const sanitizedParams = restParams ? {
+      ...restParams,
+      fields: restParams.fields && restParams.fields !== '*' ? restParams.fields : undefined
+    } : {};
+
+    return this.paginateAll<LMDeviceDatasourceInstanceGroup>(
+      `/device/devices/${deviceId}/devicedatasources/${hdsId}/groups`,
+      sanitizedParams,
+      autoPaginate
+    );
+  }
+
+  /**
+   * Create an instance group under a device datasource (hdsId).
+   */
+  async createDeviceDatasourceInstanceGroup(
+    deviceId: number,
+    hdsId: number,
+    payload: { name: string; description?: string }
+  ): Promise<ApiResult<LMDeviceDatasourceInstanceGroup>> {
+    const endpoint = `/device/devices/${deviceId}/devicedatasources/${hdsId}/groups`;
+    const requestContext: LogicMonitorRequestContext = {
+      endpoint,
+      method: 'post',
+      payload
+    };
+
+    const startedAt = performance.now();
+    const response = await this.axiosInstance.post(endpoint, payload);
+    const duration = performance.now() - startedAt;
+
+    const raw = response.data;
+    const created = raw?.data ?? raw;
+    if (!created || typeof created.id === 'undefined') {
+      throw new LogicMonitorApiError(
+        `Invalid instance group response structure returned from create for device ${deviceId} datasource ${hdsId}`,
+        {
+          status: response.status,
+          requestId: this.extractRequestId(response.headers as AxiosHeaders),
+          requestUrl: endpoint
+        }
+      );
+    }
+
+    return {
+      data: created,
+      raw,
+      meta: this.createResponseMeta(response, requestContext, duration)
+    };
+  }
+
+  /**
+   * Update an instance group by numeric group id.
+   * Note: the v3 API exposes no DELETE for instance groups — they cannot be
+   * removed via API, only created and updated.
+   */
+  async updateDeviceDatasourceInstanceGroup(
+    deviceId: number,
+    hdsId: number,
+    groupId: number,
+    payload: Record<string, unknown>
+  ): Promise<ApiResult<LMDeviceDatasourceInstanceGroup>> {
+    const endpoint = `/device/devices/${deviceId}/devicedatasources/${hdsId}/groups/${groupId}`;
+    const requestContext: LogicMonitorRequestContext = {
+      endpoint,
+      method: 'patch',
+      payload
+    };
+
+    const startedAt = performance.now();
+    const response = await this.axiosInstance.patch(endpoint, payload);
+    const duration = performance.now() - startedAt;
+
+    const raw = response.data;
+    const updated = raw?.data ?? raw;
+
+    return {
+      data: updated,
+      raw,
       meta: this.createResponseMeta(response, requestContext, duration)
     };
   }
